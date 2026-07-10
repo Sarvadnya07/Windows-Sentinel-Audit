@@ -1,0 +1,15 @@
+{
+    "ScanOptions": {
+        "IncludeNetwork": true,
+        "IncludeSignatures": true,
+        "IncludeHashes": false,
+        "MaxProcessConcurrency": 10
+    },
+    "Paths": {
+        "ReportOutput": ".\\Reports",
+        "CacheDirectory": ".\\Cache"
+    },
+    "Logging": {
+        "Level": "INFO"
+    }
+}

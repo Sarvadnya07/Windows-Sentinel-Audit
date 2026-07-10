@@ -1,0 +1,10 @@
+[
+    "powershell.*-enc",
+    "powershell.*-encodedcommand",
+    "powershell.*hidden",
+    "cmd\\.exe /c",
+    "wscript\\.exe",
+    "cscript\\.exe",
+    "bitsadmin.*transfer",
+    "certutil.*-urlcache"
+]

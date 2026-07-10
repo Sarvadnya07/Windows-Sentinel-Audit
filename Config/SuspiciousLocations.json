@@ -1,0 +1,9 @@
+{
+    "Locations": [
+        "\\AppData\\",
+        "\\Temp\\",
+        "\\ProgramData\\",
+        "\\Users\\Public\\",
+        "\\Windows\\Tasks\\"
+    ]
+}

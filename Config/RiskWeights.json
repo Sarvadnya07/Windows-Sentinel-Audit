@@ -1,0 +1,15 @@
+{
+  "UnsignedBinary": 25,
+  "InvalidSignature": 20,
+  "UserWritableLocation": 20,
+  "TempExecution": 30,
+  "PublicConnection": 10,
+  "ManyConnections": 15,
+  "SystemDirectory": -10,
+  "TrustedPublisher": -15,
+  "RunningService": 5,
+  "StartupPersistence": 15,
+  "ScheduledTask": 15,
+  "ParentMismatch": 10,
+  "MissingExecutable": 15
+}

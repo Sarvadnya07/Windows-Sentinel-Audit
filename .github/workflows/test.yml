@@ -1,0 +1,11 @@
+name: Module Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Module Tests
+        shell: powershell
+        run: .\Tests\ModuleTests.ps1

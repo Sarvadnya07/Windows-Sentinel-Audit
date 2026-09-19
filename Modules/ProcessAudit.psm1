@@ -1,21 +1,27 @@
 Set-StrictMode -Version Latest
 
+<#
+.SYNOPSIS
+Enumerates running processes from the centralized audit cache.
+#>
 function Invoke-ProcessAudit {
     $Processes = (Get-AuditCache).ProcessList
-    
-    $results = @()
+    $Results = @()
+
     if ($Processes) {
-        foreach ($p in $Processes) {
-            $results += @{
-                ProcessName = $p.Name
-                PID = $p.ProcessId
-                ParentPID = $p.ParentProcessId
-                Path = $p.ExecutablePath
-                CommandLine = $p.CommandLine
-                CreationDate = $p.CreationDate
+        foreach ($Process in $Processes) {
+            $Results += @{
+                ProcessName = $Process.Name
+                PID = $Process.ProcessId
+                ParentPID = $Process.ParentProcessId
+                Path = $Process.ExecutablePath
+                CommandLine = $Process.CommandLine
+                CreationDate = $Process.CreationDate
             }
         }
     }
-    return $results
+
+    return $Results
 }
+
 Export-ModuleMember -Function Invoke-ProcessAudit

@@ -2,31 +2,46 @@ Set-StrictMode -Version Latest
 
 $script:AuditCache = @{}
 
+<#
+.SYNOPSIS
+Initializes the in-memory audit cache.
+#>
 function Initialize-AuditCache {
     $script:AuditCache = @{
-        Processes      = @{}
-        Services       = @{}
+        Processes = @{}
+        Services = @{}
         TCPConnections = @()
-        ProcessLookup  = @{}
-        ServiceLookup  = @{}
-        ProcessList    = @()
-        ServiceList    = @()
-        Initialized    = $false
+        ProcessLookup = @{}
+        ServiceLookup = @{}
+        ProcessList = @()
+        ServiceList = @()
+        Initialized = $false
     }
 }
 
-function Build-AuditCache {
-    $Processes = Get-CimInstance Win32_Process
-    $Services  = Get-CimInstance Win32_Service
+<#
+.SYNOPSIS
+Refreshes the in-memory audit cache from native Windows telemetry.
+#>
+function Update-AuditCache {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSUseShouldProcessForStateChangingFunctions',
+        '',
+        Justification = 'Only refreshes an in-memory telemetry cache; it does not change target system state.'
+    )]
+    param()
+
+    $Processes = Get-CimInstance -ClassName Win32_Process
+    $Services = Get-CimInstance -ClassName Win32_Service
 
     $ProcessLookup = @{}
-    foreach($P in $Processes){
-        $ProcessLookup[$P.ProcessId] = $P
+    foreach ($Process in $Processes) {
+        $ProcessLookup[$Process.ProcessId] = $Process
     }
 
     $ServiceLookup = @{}
-    foreach($S in $Services){
-        $ServiceLookup[$S.Name] = $S
+    foreach ($Service in $Services) {
+        $ServiceLookup[$Service.Name] = $Service
     }
 
     $script:AuditCache.ProcessList = $Processes
@@ -34,21 +49,29 @@ function Build-AuditCache {
     $script:AuditCache.ProcessLookup = $ProcessLookup
     $script:AuditCache.ServiceLookup = $ServiceLookup
 
-    try{
-        $script:AuditCache.TCPConnections = Get-NetTCPConnection -ErrorAction Stop
+    try {
+        $script:AuditCache.TCPConnections = @(Get-NetTCPConnection -ErrorAction Stop)
     }
-    catch{
+    catch {
         $script:AuditCache.TCPConnections = @()
+        Write-Verbose "TCP connection enumeration was unavailable."
     }
 
     $script:AuditCache.Initialized = $true
 }
 
+<#
+.SYNOPSIS
+Returns the current audit cache, refreshing it when necessary.
+#>
 function Get-AuditCache {
-    if(-not $script:AuditCache.Initialized){
-        Build-AuditCache
+    if (-not $script:AuditCache.Initialized) {
+        Update-AuditCache
     }
+
     return $script:AuditCache
 }
 
-Export-ModuleMember -Function *
+Set-Alias -Name Build-AuditCache -Value Update-AuditCache -Scope Script
+
+Export-ModuleMember -Function Initialize-AuditCache, Update-AuditCache, Get-AuditCache -Alias Build-AuditCache

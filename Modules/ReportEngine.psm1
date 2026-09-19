@@ -12,8 +12,6 @@ function New-AbuserHunterReport {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
         'PSUseShouldProcessForStateChangingFunctions',
         '',
-        Scope = 'Function',
-        Target = '*',
         Justification = 'This function constructs an in-memory report only.'
     )]
     param(
@@ -30,11 +28,11 @@ function New-AbuserHunterReport {
         ComputerName = $env:COMPUTERNAME
         UserName = $env:USERNAME
         GeneratedAt = Get-Date
-        ProcessCount = $ProcessAudit.Data.Count
-        NetworkCount = $NetworkAudit.Data.Count
-        ServiceCount = $ServiceAudit.Data.Count
-        PersistenceCount = $PersistenceAudit.Data.Count
-        HighRiskCount = (
+        ProcessCount = @($ProcessAudit.Data).Count
+        NetworkCount = @($NetworkAudit.Data).Count
+        ServiceCount = @($ServiceAudit.Data).Count
+        PersistenceCount = @($PersistenceAudit.Data).Count
+        HighRiskCount = @(
             $RiskResults | Where-Object RiskScore -ge 60
         ).Count
     }

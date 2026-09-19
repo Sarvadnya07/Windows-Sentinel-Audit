@@ -22,12 +22,15 @@ function Initialize-AuditCache {
 <#
 .SYNOPSIS
 Refreshes the in-memory audit cache from native Windows telemetry.
-
-.DESCRIPTION
-Reads process, service, and TCP connection data without modifying the
-target system.
 #>
 function Update-AuditCache {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSUseShouldProcessForStateChangingFunctions',
+        '',
+        Justification = 'Only refreshes an in-memory telemetry cache; it does not change target system state.'
+    )]
+    param()
+
     $Processes = Get-CimInstance -ClassName Win32_Process
     $Services = Get-CimInstance -ClassName Win32_Service
 
@@ -47,8 +50,7 @@ function Update-AuditCache {
     $script:AuditCache.ServiceLookup = $ServiceLookup
 
     try {
-        $script:AuditCache.TCPConnections =
-            @(Get-NetTCPConnection -ErrorAction Stop)
+        $script:AuditCache.TCPConnections = @(Get-NetTCPConnection -ErrorAction Stop)
     }
     catch {
         $script:AuditCache.TCPConnections = @()

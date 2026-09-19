@@ -1,16 +1,30 @@
 Set-StrictMode -Version Latest
 
+<#
+.SYNOPSIS
+Maps a numeric risk score to a risk level.
+
+.PARAMETER Score
+Numeric risk score.
+#>
 function Get-RiskLevel {
-    param([int]$Score)
+    param(
+        [int]$Score
+    )
+
     switch ($Score) {
-        {$_ -lt 20} { "Informational"; break }
-        {$_ -lt 40} { "Low"; break }
-        {$_ -lt 60} { "Medium"; break }
-        {$_ -lt 80} { "High"; break }
+        { $_ -lt 20 } { "Informational"; break }
+        { $_ -lt 40 } { "Low"; break }
+        { $_ -lt 60 } { "Medium"; break }
+        { $_ -lt 80 } { "High"; break }
         default { "Critical" }
     }
 }
 
+<#
+.SYNOPSIS
+Calculates heuristic risk scores for process findings.
+#>
 function Invoke-RiskEngine {
     param(
         [Parameter(Mandatory)]$Processes,
@@ -20,73 +34,79 @@ function Invoke-RiskEngine {
     )
 
     $Weights = $Config.RiskWeights
-
     $SignatureLookup = @{}
-    foreach($S in $Signatures){
-        $SignatureLookup[$S.PID] = $S
+
+    foreach ($Signature in $Signatures) {
+        $SignatureLookup[$Signature.PID] = $Signature
     }
 
     $ConnectionCounts = @{}
-    foreach($C in $Connections){
-        if(!$ConnectionCounts.ContainsKey($C.ProcessId)){
-            $ConnectionCounts[$C.ProcessId] = 0
+
+    foreach ($Connection in $Connections) {
+        if (-not $ConnectionCounts.ContainsKey($Connection.ProcessId)) {
+            $ConnectionCounts[$Connection.ProcessId] = 0
         }
-        $ConnectionCounts[$C.ProcessId]++
+
+        $ConnectionCounts[$Connection.ProcessId]++
     }
 
-    $Results = foreach($P in $Processes){
+    $Results = foreach ($Process in $Processes) {
         $Score = 0
         $Reasons = New-Object System.Collections.Generic.List[string]
+        $Signature = $SignatureLookup[$Process.PID]
 
-        $Sig = $SignatureLookup[$P.PID]
-
-        if($Sig){
-            if($Sig.Status -ne "Valid"){
+        if ($Signature) {
+            if ($Signature.SignatureStatus -ne "Valid") {
                 $Score += $Weights.InvalidSignature
                 $Reasons.Add("Invalid digital signature")
             }
-            if(Test-TrustedPublisher -Publisher $Sig.Signer -Config $Config){
+
+            if (Test-TrustedPublisher -Publisher $Signature.Signer -Config $Config) {
                 $Score += $Weights.TrustedPublisher
                 $Reasons.Add("Trusted publisher")
             }
         }
-        else{
+        else {
             $Score += $Weights.MissingExecutable
             $Reasons.Add("Executable not available")
         }
 
-        if($P.Path){
-            if(Test-SuspiciousLocation -Path $P.Path -Config $Config){
+        if ($Process.Path) {
+            if (Test-SuspiciousLocation -Path $Process.Path -Config $Config) {
                 $Score += $Weights.UserWritableLocation
                 $Reasons.Add("Running from Suspicious Location")
             }
-            if($P.Path -match "^C:\\Windows\\System32"){
+
+            if ($Process.Path -match "^C:\Windows\System32") {
                 $Score += $Weights.SystemDirectory
                 $Reasons.Add("Windows system directory")
             }
         }
 
-        if($ConnectionCounts.ContainsKey($P.PID)){
-            $Count = $ConnectionCounts[$P.PID]
-            if($Count -gt 15){
+        if ($ConnectionCounts.ContainsKey($Process.PID)) {
+            $Count = $ConnectionCounts[$Process.PID]
+
+            if ($Count -gt 15) {
                 $Score += $Weights.ManyConnections
                 $Reasons.Add("Many active TCP connections")
             }
         }
-        else{
+        else {
             $Count = 0
         }
 
         [PSCustomObject]@{
-            ProcessName = $P.ProcessName
-            PID = $P.PID
-            Path = $P.Path
+            ProcessName = $Process.ProcessName
+            PID = $Process.PID
+            Path = $Process.Path
             RiskScore = $Score
-            RiskLevel = Get-RiskLevel $Score
+            RiskLevel = Get-RiskLevel -Score $Score
             ConnectionCount = $Count
             Reasons = ($Reasons -join "; ")
         }
     }
+
     return $Results
 }
-Export-ModuleMember -Function *
+
+Export-ModuleMember -Function Get-RiskLevel, Invoke-RiskEngine

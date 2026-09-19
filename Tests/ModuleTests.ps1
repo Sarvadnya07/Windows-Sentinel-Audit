@@ -144,7 +144,7 @@ Invoke-ModuleTest -Name "Execution diagnostics" -Test {
 
 Invoke-ModuleTest -Name "Heuristic evaluation" -Test {
     $Config = Invoke-ConfigValidation -ConfigDir $ConfigPath
-    Assert-Condition -Condition (Test-SuspiciousLocation -Path "C:\Users\Public\tool.exe" -Config $Config) -Message "Suspicious-location detection failed."
+    Assert-Condition -Condition (Test-SuspiciousLocation -Path "C:\\Users\\Public\\tool.exe" -Config $Config) -Message "Suspicious-location detection failed."
     Assert-Condition -Condition (Test-TrustedPublisher -Publisher "CN=Microsoft Corporation" -Config $Config) -Message "Trusted-publisher detection failed."
 }
 
@@ -170,7 +170,7 @@ Invoke-ModuleTest -Name "Risk engine signature contract" -Test {
         [PSCustomObject]@{
             ProcessName = "test.exe"
             PID = 4242
-            Path = "C:\Windows\System32\test.exe"
+            Path = "C:\\Windows\\System32\\test.exe"
         }
     )
 
@@ -213,7 +213,7 @@ Invoke-ModuleTest -Name "Correlation and investigation" -Test {
         ProcessName = "test.exe"
         PID = 4242
         ParentPID = 1
-        Path = "C:\Users\Public\test.exe"
+        Path = "C:\\Users\\Public\\test.exe"
     }
 
     $Risk = @(
@@ -240,7 +240,7 @@ Invoke-ModuleTest -Name "Report and export engines" -Test {
             [PSCustomObject]@{
                 ProcessName = "test.exe"
                 PID = 4242
-                Path = "C:\Users\Public\test.exe"
+                Path = "C:\\Users\\Public\\test.exe"
             }
         )
 
@@ -296,11 +296,11 @@ Invoke-ModuleTest -Name "Read-only audit surface" -Test {
         Get-Item -LiteralPath (Join-Path $Root "SystemWide-AbuserHunter.ps1")
     )
 
-    $Forbidden = '\b(Set-Item|Set-ItemProperty|Remove-Item|Remove-ItemProperty|Stop-Process|Stop-Service|Set-Service)\b'
+    $Forbidden = '\\b(Set-Item|Set-ItemProperty|Remove-Item|Remove-ItemProperty|Stop-Process|Stop-Service|Set-Service)\\b'
 
     foreach ($File in $TargetFiles) {
-        $Matches = Select-String -LiteralPath $File.FullName -Pattern $Forbidden -AllMatches -CaseSensitive
-        Assert-Condition -Condition ($null -eq $Matches) -Message "State-mutating cmdlet reference found in $($File.FullName)."
+        $StateMutationMatches = Select-String -LiteralPath $File.FullName -Pattern $Forbidden -AllMatches -CaseSensitive
+        Assert-Condition -Condition ($null -eq $StateMutationMatches) -Message "State-mutating cmdlet reference found in $($File.FullName)."
     }
 }
 

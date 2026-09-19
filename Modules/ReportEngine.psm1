@@ -32,9 +32,7 @@ function New-AbuserHunterReport {
         NetworkCount = @($NetworkAudit.Data).Count
         ServiceCount = @($ServiceAudit.Data).Count
         PersistenceCount = @($PersistenceAudit.Data).Count
-        HighRiskCount = @(
-            $RiskResults | Where-Object RiskScore -ge 60
-        ).Count
+        HighRiskCount = @($RiskResults | Where-Object RiskScore -ge 60).Count
     }
 
     return [PSCustomObject]@{

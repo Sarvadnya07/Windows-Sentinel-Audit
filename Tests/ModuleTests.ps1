@@ -53,6 +53,7 @@ Invoke-ModuleTest -Name "PowerShell syntax validation" -Test {
         $Tokens = $null
         $ParseErrors = $null
         [void][System.Management.Automation.Language.Parser]::ParseFile($File.FullName, [ref]$Tokens, [ref]$ParseErrors)
+
         if ($ParseErrors.Count -gt 0) {
             throw "Syntax errors in $($File.FullName): $($ParseErrors[0].Message)"
         }
@@ -165,23 +166,29 @@ Invoke-ModuleTest -Name "Risk-level boundaries" -Test {
 Invoke-ModuleTest -Name "Risk engine signature contract" -Test {
     $Config = Invoke-ConfigValidation -ConfigDir $ConfigPath
 
-    $Processes = @([PSCustomObject]@{
-        ProcessName = "test.exe"
-        PID = 4242
-        Path = "C:\Windows\System32\test.exe"
-    })
+    $Processes = @(
+        [PSCustomObject]@{
+            ProcessName = "test.exe"
+            PID = 4242
+            Path = "C:\Windows\System32\test.exe"
+        }
+    )
 
-    $ValidSignature = @([PSCustomObject]@{
-        PID = 4242
-        SignatureStatus = "Valid"
-        Signer = "CN=Microsoft Corporation"
-    })
+    $ValidSignature = @(
+        [PSCustomObject]@{
+            PID = 4242
+            SignatureStatus = "Valid"
+            Signer = "CN=Microsoft Corporation"
+        }
+    )
 
-    $InvalidSignature = @([PSCustomObject]@{
-        PID = 4242
-        SignatureStatus = "NotSigned"
-        Signer = $null
-    })
+    $InvalidSignature = @(
+        [PSCustomObject]@{
+            PID = 4242
+            SignatureStatus = "NotSigned"
+            Signer = $null
+        }
+    )
 
     $ValidResult = Invoke-RiskEngine -Processes $Processes -Signatures $ValidSignature -Connections @() -Config $Config
     $InvalidResult = Invoke-RiskEngine -Processes $Processes -Signatures $InvalidSignature -Connections @() -Config $Config
@@ -229,26 +236,32 @@ Invoke-ModuleTest -Name "Report and export engines" -Test {
     New-Item -ItemType Directory -Path $TempPath | Out-Null
 
     try {
-        $ProcessData = @([PSCustomObject]@{
-            ProcessName = "test.exe"
-            PID = 4242
-            Path = "C:\Users\Public\test.exe"
-        })
+        $ProcessData = @(
+            [PSCustomObject]@{
+                ProcessName = "test.exe"
+                PID = 4242
+                Path = "C:\Users\Public\test.exe"
+            }
+        )
 
-        $RiskData = @([PSCustomObject]@{
-            ProcessName = "test.exe"
-            PID = 4242
-            RiskScore = 42
-            RiskLevel = "Medium"
-            Reasons = "test"
-        })
+        $RiskData = @(
+            [PSCustomObject]@{
+                ProcessName = "test.exe"
+                PID = 4242
+                RiskScore = 42
+                RiskLevel = "Medium"
+                Reasons = "test"
+            }
+        )
 
-        $InvestigationData = @([PSCustomObject]@{
-            ProcessName = "test.exe"
-            PID = 4242
-            RiskScore = 42
-            RiskLevel = "Medium"
-        })
+        $InvestigationData = @(
+            [PSCustomObject]@{
+                ProcessName = "test.exe"
+                PID = 4242
+                RiskScore = 42
+                RiskLevel = "Medium"
+            }
+        )
 
         $Report = New-AbuserHunterReport -ProcessAudit @{ Data = $ProcessData } -NetworkAudit @{ Data = @() } -ServiceAudit @{ Data = @() } -SignatureAudit @{ Data = @() } -PersistenceAudit @{ Data = @() } -RiskResults $RiskData -Investigation $InvestigationData
         $JsonFile = Export-AbuserHunterJson -Report $Report -OutputFolder $TempPath

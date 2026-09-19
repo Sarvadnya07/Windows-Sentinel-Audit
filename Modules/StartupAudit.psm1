@@ -1,6 +1,10 @@
 Set-StrictMode -Version Latest
 
-function Get-StartupFolderEntries {
+<#
+.SYNOPSIS
+Reads files from common Windows startup folders.
+#>
+function Get-StartupFolderEntry {
     $Folders = @(
         "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup",
         "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
@@ -8,20 +12,25 @@ function Get-StartupFolderEntries {
 
     $Results = @()
 
-    foreach($Folder in $Folders){
-        if(!(Test-Path $Folder)){
+    foreach ($Folder in $Folders) {
+        if (-not (Test-Path -LiteralPath $Folder)) {
             continue
         }
-        Get-ChildItem $Folder -ErrorAction SilentlyContinue | ForEach-Object{
-            $Results += [PSCustomObject]@{
-                Type="StartupFolder"
-                Folder=$Folder
-                Name=$_.Name
-                Path=$_.FullName
+
+        Get-ChildItem -LiteralPath $Folder -ErrorAction SilentlyContinue |
+            ForEach-Object {
+                $Results += [PSCustomObject]@{
+                    Type = "StartupFolder"
+                    Folder = $Folder
+                    Name = $_.Name
+                    Path = $_.FullName
+                }
             }
-        }
     }
+
     return $Results
 }
 
-Export-ModuleMember -Function *
+Set-Alias -Name Get-StartupFolderEntries -Value Get-StartupFolderEntry -Scope Script
+
+Export-ModuleMember -Function Get-StartupFolderEntry -Alias Get-StartupFolderEntries

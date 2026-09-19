@@ -1,122 +1,156 @@
-param()
-$scriptPath = $MyInvocation.MyCommand.Path
-$basePath = Split-Path $scriptPath
+﻿<#
+.SYNOPSIS
+Runs the complete SystemWide-AbuserHunter forensic audit pipeline.
 
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host " SystemWide-AbuserHunter" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
+.DESCRIPTION
+Executes read-only telemetry collection, heuristic risk scoring,
+investigation, and report generation.
+#>
+function Invoke-SystemWideAbuserHunter {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSAvoidUsingWriteHost',
+        '',
+        Justification = 'The orchestrator intentionally provides a colorized interactive CLI.'
+    )]
+    [CmdletBinding()]
+    param()
 
-. (Join-Path $basePath "Core\Bootstrap.ps1") -BasePath $basePath
+    $ScriptPath = $MyInvocation.MyCommand.Path
+    $BasePath = Split-Path $ScriptPath
 
-Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Initializing Cache..." -PercentComplete 10
-$swTotal = [Diagnostics.Stopwatch]::StartNew()
+    Write-Host -Object "========================================" -ForegroundColor Cyan
+    Write-Host -Object " SystemWide-AbuserHunter" -ForegroundColor Cyan
+    Write-Host -Object "========================================" -ForegroundColor Cyan
+    . (Join-Path $BasePath "Core\Bootstrap.ps1") -BasePath $BasePath
 
-$sw = [Diagnostics.Stopwatch]::StartNew()
-Initialize-AuditCache
-Build-AuditCache
-$sw.Stop()
-Write-Host "✓ Cache Initialization ....... $($sw.Elapsed.TotalSeconds.ToString('0.00')) sec" -ForegroundColor Green
+    Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Initializing Cache..." -PercentComplete 10
+    $SwTotal = [Diagnostics.Stopwatch]::StartNew()
+    $Sw = [Diagnostics.Stopwatch]::StartNew()
 
-$config = Invoke-ConfigValidation -ConfigDir (Join-Path $basePath "Config")
+    Initialize-AuditCache
+    Update-AuditCache
+    $Sw.Stop()
+    Write-Host -Object ("✓ Cache Initialization ....... {0} sec" -f $Sw.Elapsed.TotalSeconds.ToString('0.00')) -ForegroundColor Green
 
-Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Process Audit..." -PercentComplete 20
-$sw.Restart()
-try { $procAudit = Invoke-ProcessAudit } catch { Write-Warning "Process Audit Failed: $_"; $procAudit = @() }
-$sw.Stop()
-Write-Host "✓ Process Audit .............. $($sw.Elapsed.TotalSeconds.ToString('0.00')) sec" -ForegroundColor Green
+    $Config = Invoke-ConfigValidation -ConfigDir (Join-Path $BasePath "Config")
 
-Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Network Audit..." -PercentComplete 40
-$sw.Restart()
-try { $netAudit = Invoke-NetworkAudit } catch { Write-Warning "Network Audit Failed"; $netAudit = @() }
-$sw.Stop()
-Write-Host "✓ Network Audit .............. $($sw.Elapsed.TotalSeconds.ToString('0.00')) sec" -ForegroundColor Green
+    Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Process Audit..." -PercentComplete 20
+    $Sw.Restart()
+    try { $ProcessAudit = Invoke-ProcessAudit }
+    catch {
+        Write-Warning "Process Audit Failed: $_"
+        $ProcessAudit = @()
+    }
+    $Sw.Stop()
+    Write-Host -Object ("✓ Process Audit .............. {0} sec" -f $Sw.Elapsed.TotalSeconds.ToString('0.00')) -ForegroundColor Green
 
-Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Service Audit..." -PercentComplete 50
-$sw.Restart()
-try { $svcAudit = Invoke-ServiceAudit } catch { Write-Warning "Service Audit Failed"; $svcAudit = @() }
-$sw.Stop()
-Write-Host "✓ Service Audit .............. $($sw.Elapsed.TotalSeconds.ToString('0.00')) sec" -ForegroundColor Green
+    Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Network Audit..." -PercentComplete 40
+    $Sw.Restart()
+    try { $NetworkAudit = Invoke-NetworkAudit }
+    catch {
+        Write-Warning "Network Audit Failed: $_"
+        $NetworkAudit = @()
+    }
+    $Sw.Stop()
+    Write-Host -Object ("✓ Network Audit .............. {0} sec" -f $Sw.Elapsed.TotalSeconds.ToString('0.00')) -ForegroundColor Green
 
-$sigAudit = @()
+    Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Service Audit..." -PercentComplete 50
+    $Sw.Restart()
+    try { $ServiceAudit = Invoke-ServiceAudit }
+    catch {
+        Write-Warning "Service Audit Failed: $_"
+        $ServiceAudit = @()
+    }
+    $Sw.Stop()
+    Write-Host -Object ("✓ Service Audit .............. {0} sec" -f $Sw.Elapsed.TotalSeconds.ToString('0.00')) -ForegroundColor Green
 
-Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Correlation Engine..." -PercentComplete 60
-$sw.Restart()
-try { $Correlation = Invoke-CorrelationEngine } catch { Write-Warning "Correlation Failed"; $Correlation = @() }
-$sw.Stop()
-Write-Host "✓ Correlation Engine ......... $($sw.Elapsed.TotalSeconds.ToString('0.00')) sec" -ForegroundColor Green
+    Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Signature Audit..." -PercentComplete 60
+    $Sw.Restart()
+    try { $SignatureAudit = Invoke-SignatureAudit }
+    catch {
+        Write-Warning "Signature Audit Failed: $_"
+        $SignatureAudit = Get-StandardResult -Module SignatureAudit -Data @() -Errors @($_.Exception.Message)
+    }
+    $Sw.Stop()
+    Write-Host -Object ("✓ Signature Audit ............ {0} sec" -f $Sw.Elapsed.TotalSeconds.ToString('0.00')) -ForegroundColor Green
 
-Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Risk Engine..." -PercentComplete 70
-$sw.Restart()
-try { $risk = Invoke-RiskEngine -Processes $procAudit -Signatures $sigAudit -Connections $netAudit -Config $config } catch { Write-Warning "Risk Engine Failed: $_"; $risk = @() }
-$sw.Stop()
-Write-Host "✓ Risk Engine ................ $($sw.Elapsed.TotalSeconds.ToString('0.00')) sec" -ForegroundColor Green
+    Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Risk Engine..." -PercentComplete 70
+    $Sw.Restart()
+    try { $Risk = Invoke-RiskEngine -Processes $ProcessAudit -Signatures $SignatureAudit.Data -Connections $NetworkAudit -Config $Config }
+    catch {
+        Write-Warning "Risk Engine Failed: $_"
+        $Risk = @()
+    }
+    $Sw.Stop()
+    Write-Host -Object ("✓ Risk Engine ................ {0} sec" -f $Sw.Elapsed.TotalSeconds.ToString('0.00')) -ForegroundColor Green
 
-Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Persistence Audit..." -PercentComplete 80
-$sw.Restart()
-try { $Persistence = Invoke-PersistenceAudit } catch { Write-Warning "Persistence Audit Failed"; $Persistence = [PSCustomObject]@{Data=@()} }
-$sw.Stop()
-Write-Host "✓ Persistence Audit .......... $($sw.Elapsed.TotalSeconds.ToString('0.00')) sec" -ForegroundColor Green
+    Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Persistence Audit..." -PercentComplete 80
+    $Sw.Restart()
+    try { $Persistence = Invoke-PersistenceAudit }
+    catch {
+        Write-Warning "Persistence Audit Failed: $_"
+        $Persistence = [PSCustomObject]@{ Data = @() }
+    }
+    $Sw.Stop()
+    Write-Host -Object ("✓ Persistence Audit .......... {0} sec" -f $Sw.Elapsed.TotalSeconds.ToString('0.00')) -ForegroundColor Green
 
-Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Investigation Engine..." -PercentComplete 90
-$sw.Restart()
-try { $Investigation = Invoke-InvestigationEngine -Processes $procAudit -Network $netAudit -Services $svcAudit -Persistence $Persistence.Data -Risk $risk } catch { Write-Warning "Investigation Engine Failed: $_"; $Investigation = @() }
-$sw.Stop()
-Write-Host "✓ Investigation Engine ....... $($sw.Elapsed.TotalSeconds.ToString('0.00')) sec" -ForegroundColor Green
+    Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Running Investigation Engine..." -PercentComplete 90
+    $Sw.Restart()
+    try {
+        $Investigation = Invoke-InvestigationEngine -Processes $ProcessAudit -Network $NetworkAudit -Services $ServiceAudit -Persistence $Persistence.Data -Risk $Risk
+    }
+    catch {
+        Write-Warning "Investigation Engine Failed: $_"
+        $Investigation = @()
+    }
+    $Sw.Stop()
+    Write-Host -Object ("✓ Investigation Engine ....... {0} sec" -f $Sw.Elapsed.TotalSeconds.ToString('0.00')) -ForegroundColor Green
 
-Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Generating Reports..." -PercentComplete 95
+    Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Generating Reports..." -PercentComplete 95
+    $Report = New-AbuserHunterReport -ProcessAudit @{ Data = $ProcessAudit } -NetworkAudit @{ Data = $NetworkAudit } -ServiceAudit @{ Data = $ServiceAudit } -SignatureAudit $SignatureAudit -PersistenceAudit $Persistence -RiskResults $Risk -Investigation $Investigation
 
-$Report = New-AbuserHunterReport `
-    -ProcessAudit @{Data=$procAudit} `
-    -NetworkAudit @{Data=$netAudit} `
-    -ServiceAudit @{Data=$svcAudit} `
-    -SignatureAudit @{Data=$sigAudit} `
-    -PersistenceAudit $Persistence `
-    -RiskResults $risk `
-    -Investigation $Investigation
+    $RunId = Get-Date -Format "yyyy-MM-dd_HHmmss"
+    $ReportsDir = Join-Path $BasePath "Reports\$RunId"
+    New-Item -ItemType Directory -Path $ReportsDir -Force | Out-Null
 
-$runId = Get-Date -Format "yyyy-MM-dd_HHmmss"
-$reportsDir = Join-Path $basePath "Reports\$runId"
-New-Item -ItemType Directory -Path $reportsDir -Force | Out-Null
+    [void](Export-AbuserHunterJson -Report $Report -OutputFolder $ReportsDir)
+    [void](Export-AbuserHunterCsv -Report $Report -OutputFolder $ReportsDir)
+    [void](Export-AbuserHunterHtml -Report $Report -OutputFolder $ReportsDir)
 
-$json = Export-AbuserHunterJson -Report $Report -OutputFolder $reportsDir
-$csv = Export-AbuserHunterCsv -Report $Report -OutputFolder $reportsDir
-$html = Export-AbuserHunterHtml -Report $Report -OutputFolder $reportsDir
+    Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Completed" -PercentComplete 100
+    $SwTotal.Stop()
 
-Write-Progress -Activity "SystemWide-AbuserHunter" -Status "Completed" -PercentComplete 100
-$swTotal.Stop()
+    Write-Host -Object ""
+    Write-Host -Object ("Total Runtime: {0} seconds" -f $SwTotal.Elapsed.TotalSeconds.ToString('0.00')) -ForegroundColor Cyan
 
-Write-Host ""
-Write-Host "Total Runtime: $($swTotal.Elapsed.TotalSeconds.ToString('0.00')) seconds" -ForegroundColor Cyan
+    $Stats = Get-ProcessStatistic -Processes $ProcessAudit
+    $HighRisk = @($Risk | Where-Object { $_.RiskLevel -eq 'Critical' -or $_.RiskLevel -eq 'High' }).Count
+    $MediumRisk = @($Risk | Where-Object RiskLevel -eq 'Medium').Count
+    $LowRisk = @($Risk | Where-Object RiskLevel -eq 'Low').Count
 
-$Stats = Get-ProcessStatistics $procAudit
-$highRisk = ($risk | Where-Object { $_.RiskLevel -eq 'Critical' -or $_.RiskLevel -eq 'High' }).Count
-if ($null -eq $highRisk) { $highRisk = 0 }
-$medRisk = ($risk | Where-Object RiskLevel -eq 'Medium').Count
-if ($null -eq $medRisk) { $medRisk = 0 }
-$lowRisk = ($risk | Where-Object RiskLevel -eq 'Low').Count
-if ($null -eq $lowRisk) { $lowRisk = 0 }
+    Write-Host -Object ""
+    Write-Host -Object "========================================" -ForegroundColor Cyan
+    Write-Host -Object " SYSTEM OVERVIEW" -ForegroundColor Cyan
+    Write-Host -Object "========================================" -ForegroundColor Cyan
+    Write-Host -Object "Processes          : $($Stats.TotalProcesses)"
+    Write-Host -Object "Services           : $($Stats.RunningServices)"
+    Write-Host -Object "TCP Connections    : $($Stats.TCPConnections)"
+    Write-Host -Object "Persistence Items  : $($Persistence.Data.Count)"
+    Write-Host -Object ""
+    Write-Host -Object "High Risk          : $HighRisk" -ForegroundColor Red
+    Write-Host -Object "Medium Risk        : $MediumRisk" -ForegroundColor Yellow
+    Write-Host -Object "Low Risk           : $LowRisk" -ForegroundColor Green
+    Write-Host -Object ""
+    Write-Host -Object "Report Folder:"
+    Write-Host -Object $ReportsDir -ForegroundColor Cyan
+    Write-Host -Object ""
+    Write-Host -Object "Investigation Tips:" -ForegroundColor Yellow
+    Write-Host -Object "1. Review high-risk items first."
+    Write-Host -Object "2. Check unsigned executables running from user-writable locations."
+    Write-Host -Object "3. Confirm whether unusual startup entries are expected software."
+    Write-Host -Object "4. Investigate unexpected parent-child process relationships."
+    Write-Host -Object "5. Verify services with non-standard executable paths."
+    Write-Host -Object "6. Remember that heuristic findings are not proof of compromise." -ForegroundColor Cyan
+}
 
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host " SYSTEM OVERVIEW" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "Processes          : $($Stats.TotalProcesses)"
-Write-Host "Services           : $($Stats.RunningServices)"
-Write-Host "TCP Connections    : $($Stats.TCPConnections)"
-Write-Host "Persistence Items  : $($Persistence.Data.Count)"
-Write-Host ""
-Write-Host "High Risk          : $highRisk" -ForegroundColor Red
-Write-Host "Medium Risk        : $medRisk" -ForegroundColor Yellow
-Write-Host "Low Risk           : $lowRisk" -ForegroundColor Green
-Write-Host ""
-Write-Host "Report Folder:"
-Write-Host $reportsDir -ForegroundColor Cyan
-
-Write-Host ""
-Write-Host "Investigation Tips:" -ForegroundColor Yellow
-Write-Host "1. Review high-risk items first."
-Write-Host "2. Check unsigned executables running from user-writable locations."
-Write-Host "3. Confirm whether unusual startup entries are expected software."
-Write-Host "4. Investigate unexpected parent-child process relationships."
-Write-Host "5. Verify services with non-standard executable paths."
-Write-Host "6. Remember that heuristic findings are not proof of compromise." -ForegroundColor Cyan
+Invoke-SystemWideAbuserHunter

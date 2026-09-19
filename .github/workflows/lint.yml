@@ -1,11 +1,15 @@
 name: Lint PowerShell
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
 
 jobs:
   lint:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
+
       - name: Run PSScriptAnalyzer
         shell: powershell
         run: |

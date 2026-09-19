@@ -1,25 +1,38 @@
 Set-StrictMode -Version Latest
 
-function Get-ScheduledTaskEntries {
-    $Results=@()
-    try{
-        Get-ScheduledTask | ForEach-Object{
-            $Action=$_.Actions | Select-Object -First 1
-            $Trigger=$_.Triggers | Select-Object -First 1
+<#
+.SYNOPSIS
+Reads scheduled-task metadata without changing task state.
+#>
+function Get-ScheduledTaskEntry {
+    $Results = @()
+
+    try {
+        Get-ScheduledTask | ForEach-Object {
+            $Action = $_.Actions | Select-Object -First 1
+            $Trigger = $_.Triggers | Select-Object -First 1
+
             $Results += [PSCustomObject]@{
-                Type="ScheduledTask"
-                Name=$_.TaskName
-                Path=$_.TaskPath
-                State=$_.State
-                Execute=$Action.Execute
-                Arguments=$Action.Arguments
-                TriggerType=$Trigger.TriggerType
+                Type = "ScheduledTask"
+                Name = $_.TaskName
+                Path = $_.TaskPath
+                State = $_.State
+                Execute = $Action.Execute
+                Arguments = $Action.Arguments
+                TriggerType = $Trigger.TriggerType
             }
         }
     }
-    catch{
+    catch {
+        Write-Verbose (
+            "Scheduled-task enumeration failed: {0}" -f
+            $_.Exception.Message
+        )
     }
+
     return $Results
 }
 
-Export-ModuleMember -Function *
+Set-Alias -Name Get-ScheduledTaskEntries -Value Get-ScheduledTaskEntry -Scope Script
+
+Export-ModuleMember -Function Get-ScheduledTaskEntry -Alias Get-ScheduledTaskEntries

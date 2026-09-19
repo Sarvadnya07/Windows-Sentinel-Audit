@@ -1,19 +1,26 @@
 # Contributing to SystemWide-AbuserHunter
 
-First off, thank you for considering contributing to SystemWide-AbuserHunter! 
+Thank you for considering a contribution.
 
 ## Workflow
-1. Fork the repo and create your branch from `main`.
-2. If you've added code that should be tested, add tests to `Tests/ModuleTests.ps1`.
-3. Ensure your PowerShell code passes `PSScriptAnalyzer`.
-4. Issue that pull request!
+
+1. Fork the repository and create a branch from `main`.
+2. Add or update tests in `Tests/ModuleTests.ps1` when behavior changes.
+3. Ensure PowerShell code passes PSScriptAnalyzer.
+4. Run the documentation lint checks.
+5. Open a pull request with a concise technical description.
 
 ## Coding Standards
-- Use **PascalCase** for functions (e.g., `Invoke-ProcessAudit`).
-- Always use `Set-StrictMode -Version Latest` at the top of your `.psm1` files.
-- Return structured objects matching the existing `Get-StandardResult` or `[PSCustomObject]@{Data=...}` pattern.
-- Do not add any third-party dependencies (no NuGet, no compiled binaries).
+
+- Use approved PowerShell verbs and singular nouns for exported functions.
+- Use **PascalCase** for functions, such as `Invoke-ProcessAudit`.
+- Use `Set-StrictMode -Version Latest` in PowerShell modules.
+- Return structured audit results consistently.
+- Do not add third-party binaries or package dependencies.
+- Preserve the read-only security model.
 
 ## Branch Strategy
-- `main` is always production-ready.
-- Create feature branches (e.g., `feat/etw-integration` or `fix/cache-bug`).
+
+- `main` is the production branch.
+- Create focused branches such as `feat/etw-integration` or
+  `fix/cache-bug`.

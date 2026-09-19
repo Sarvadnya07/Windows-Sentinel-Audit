@@ -1,13 +1,18 @@
 Set-StrictMode -Version Latest
 
+<#
+.SYNOPSIS
+Correlates network connections with their owning processes.
+#>
 function Invoke-CorrelationEngine {
     $Cache = Get-AuditCache
     $Connections = $Cache.TCPConnections
     $Processes = $Cache.ProcessLookup
 
-    $Output = foreach($Connection in $Connections){
+    $Output = foreach ($Connection in $Connections) {
         $Process = $Processes[$Connection.OwningProcess]
-        if(-not $Process){
+
+        if (-not $Process) {
             continue
         }
 
@@ -23,6 +28,7 @@ function Invoke-CorrelationEngine {
             State = $Connection.State
         }
     }
+
     return $Output
 }
 

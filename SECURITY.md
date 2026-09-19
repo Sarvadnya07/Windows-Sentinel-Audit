@@ -2,18 +2,27 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.x.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+| Version | Supported |
+| --- | --- |
+| 1.x.x | :white_check_mark: |
+| < 1.0 | :x: |
 
 ## Reporting a Vulnerability
-Since AbuserHunter is a read-only auditing tool, vulnerabilities typically fall into two categories:
-1. **Denial of Service:** A bug that causes the script to consume infinite memory or 100% CPU.
-2. **Evasion:** A known methodology where a malicious actor can bypass the heuristic checks (e.g., spoofing a parent PID that we fail to validate).
 
-Please do not open a public issue for evasion vulnerabilities. Email the maintainer team directly.
+Because AbuserHunter is a read-only auditing tool, reports generally fall
+into categories such as:
+
+1. **Denial of Service:** A defect that can cause excessive resource use.
+2. **Evasion:** A methodology that can bypass or misclassify heuristic
+   checks.
+
+Please do not disclose security-sensitive evasion details in a public
+issue. Use the repository's private security-reporting channel instead.
 
 ## Best Practices
-- Execute the script from a secure, write-blocked USB drive during live incident response.
-- Do not upload your `Audit.json` to public pastebins, as it contains your entire environment's process tree and network layout.
+
+- Execute the script from a trusted, write-blocked USB device during live
+  incident response when appropriate.
+- Treat generated audit files as sensitive forensic data.
+- Do not upload audit results containing environment telemetry to public
+  paste services.

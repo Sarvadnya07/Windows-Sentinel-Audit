@@ -1,29 +1,45 @@
 Set-StrictMode -Version Latest
 
+<#
+.SYNOPSIS
+Returns network connections from the centralized audit cache.
+#>
 function Invoke-NetworkAudit {
     $Cache = Get-AuditCache
-    $Processes = $Cache.ProcessList
-    $ProcessLookup = $Cache.ProcessLookup
     $Connections = $Cache.TCPConnections
+    $Results = @()
 
-    $results = @()
     if ($Connections) {
-        foreach ($conn in $Connections) {
-            $type = if ($conn.RemoteAddress -eq '127.0.0.1' -or $conn.RemoteAddress -eq '::1') { 'Loopback' }
-                    elseif ($conn.RemoteAddress -match '^10\.|^172\.(1[6-9]|2[0-9]|3[0-1])\.|^192\.168\.') { 'Private' }
-                    else { 'Public' }
-            
-            $results += @{
-                ProcessId = $conn.OwningProcess
-                LocalAddress = $conn.LocalAddress
-                LocalPort = $conn.LocalPort
-                RemoteAddress = $conn.RemoteAddress
-                RemotePort = $conn.RemotePort
-                State = $conn.State
-                Type = $type
+        foreach ($Connection in $Connections) {
+            $Type = if (
+                $Connection.RemoteAddress -eq '127.0.0.1' -or
+                $Connection.RemoteAddress -eq '::1'
+            ) {
+                'Loopback'
+            }
+            elseif (
+                $Connection.RemoteAddress -match
+                '^10\.|^172\.(1[6-9]|2[0-9]|3[0-1])\.|^192\.168\.'
+            ) {
+                'Private'
+            }
+            else {
+                'Public'
+            }
+
+            $Results += @{
+                ProcessId = $Connection.OwningProcess
+                LocalAddress = $Connection.LocalAddress
+                LocalPort = $Connection.LocalPort
+                RemoteAddress = $Connection.RemoteAddress
+                RemotePort = $Connection.RemotePort
+                State = $Connection.State
+                Type = $Type
             }
         }
     }
-    return $results
+
+    return $Results
 }
+
 Export-ModuleMember -Function Invoke-NetworkAudit

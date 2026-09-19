@@ -6,14 +6,12 @@ Runs the complete SystemWide-AbuserHunter forensic audit pipeline.
 Executes read-only telemetry collection, heuristic risk scoring,
 investigation, and report generation.
 #>
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute(
-    'PSAvoidUsingWriteHost',
-    '',
-    Scope = 'Function',
-    Target = '*',
-    Justification = 'The orchestrator intentionally provides a colorized interactive CLI.'
-)]
 function Invoke-SystemWideAbuserHunter {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSAvoidUsingWriteHost',
+        '',
+        Justification = 'The orchestrator intentionally provides a colorized interactive CLI.'
+    )]
     [CmdletBinding()]
     param()
 
@@ -155,9 +153,9 @@ function Invoke-SystemWideAbuserHunter {
     Write-Host -Object ("Total Runtime: {0} seconds" -f $SwTotal.Elapsed.TotalSeconds.ToString('0.00')) -ForegroundColor Cyan
 
     $Stats = Get-ProcessStatistic -Processes $ProcessAudit
-    $HighRisk = ($Risk | Where-Object { $_.RiskLevel -eq 'Critical' -or $_.RiskLevel -eq 'High' }).Count
-    $MediumRisk = ($Risk | Where-Object RiskLevel -eq 'Medium').Count
-    $LowRisk = ($Risk | Where-Object RiskLevel -eq 'Low').Count
+    $HighRisk = @($Risk | Where-Object { $_.RiskLevel -eq 'Critical' -or $_.RiskLevel -eq 'High' }).Count
+    $MediumRisk = @($Risk | Where-Object RiskLevel -eq 'Medium').Count
+    $LowRisk = @($Risk | Where-Object RiskLevel -eq 'Low').Count
 
     Write-Host -Object ""
     Write-Host -Object "========================================" -ForegroundColor Cyan

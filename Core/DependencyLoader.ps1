@@ -1,4 +1,6 @@
-param([string]$BasePath)
+param(
+    [string]$BasePath
+)
 
 $modules = @(
     "Core\Logger.psm1",
@@ -31,17 +33,14 @@ $modules = @(
     "Modules\CorrelationEngine.psm1",
     "Modules\HeuristicEngine.psm1",
     "Modules\Statistics.psm1",
-    "Modules\RegistryAudit.psm1",
-    "Modules\StartupAudit.psm1",
-    "Modules\ScheduledTaskAudit.psm1",
-    "Modules\PersistenceAudit.psm1",
     "Modules\InvestigationEngine.psm1",
     "Modules\ConfigValidator.psm1"
 )
 
 foreach ($mod in $modules) {
     $path = Join-Path $BasePath $mod
-    if (Test-Path $path) {
+
+    if (Test-Path -LiteralPath $path) {
         Import-Module $path -Force
     }
 }

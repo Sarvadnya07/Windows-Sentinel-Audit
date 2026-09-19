@@ -144,8 +144,8 @@ Invoke-ModuleTest -Name "Execution diagnostics" -Test {
 
 Invoke-ModuleTest -Name "Heuristic evaluation" -Test {
     $Config = Invoke-ConfigValidation -ConfigDir $ConfigPath
-    Assert-Condition -Condition ($SuspiciousPath = Join-Path $env:ProgramData "tool.exe"
-    Test-SuspiciousLocation -Path $SuspiciousPath -Config $Config) -Message "Suspicious-location detection failed."
+    $SuspiciousPath = Join-Path $env:ProgramData "tool.exe"
+    Assert-Condition -Condition (Test-SuspiciousLocation -Path $SuspiciousPath -Config $Config) -Message "Suspicious-location detection failed."
     Assert-Condition -Condition (Test-TrustedPublisher -Publisher "CN=Microsoft Corporation" -Config $Config) -Message "Trusted-publisher detection failed."
 }
 
